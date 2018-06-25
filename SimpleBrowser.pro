@@ -26,6 +26,9 @@ QMAKE_CXXFLAGS+="-fsanitize=address -fno-omit-frame-pointer"
 QMAKE_CFLAGS+="-fsanitize=address -fno-omit-frame-pointer"
 QMAKE_LFLAGS+="-fsanitize=address"
 
+CONFIG+=link_pkgconfig
+PKGCONFIG+=myhtml
+
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
@@ -35,7 +38,8 @@ SOURCES += \
 HEADERS += \
         mainwindow.h \
     compositorwidget.h \
-    layoutworker.h
+    layoutworker.h \
+    domnode.h
 
 FORMS += \
         mainwindow.ui

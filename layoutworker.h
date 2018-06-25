@@ -7,6 +7,9 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
+#include <myhtml/api.h>
+
+#include "domnode.h"
 
 class LayoutWorker: public QObject
 {
@@ -19,7 +22,10 @@ private:
     QMutex resultLock;
     QSize size;
 
-    QString html;
+    std::string html;
+    DomNode root;
+
+    void parseHtml();
 
 public:
     LayoutWorker();
