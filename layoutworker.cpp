@@ -1,6 +1,16 @@
 #include "layoutworker.h"
 #include <iostream>
 
+namespace {
+
+QNetworkRequest makeRequest(QUrl url) {
+    QNetworkRequest req(url);
+    req.setRawHeader("User-Agent", "ELinks/0.9.3 (textmode; Linux 2.6.9-kanotix-8 i686; 127x41)");
+    return req;
+}
+
+}
+
 LayoutWorker::LayoutWorker()
 {}
 
@@ -12,12 +22,15 @@ LayoutWorker::~LayoutWorker()
 void LayoutWorker::resize(QSize size)
 {
     this->size = size;
+    QMetaObject::invokeMethod(this, &LayoutWorker::redraw);
 }
 
 void LayoutWorker::copyImage(QPainter &dst)
 {
-    QMutexLocker lock(&resultLock);
-    dst.drawImage(QPoint{0,0}, result);
+    if (resultLock.tryLock(10)) {
+        dst.drawImage(QPoint{0,0}, result);
+        resultLock.unlock();
+    }
 }
 
 void LayoutWorker::gotoUrl(QString url)
@@ -26,8 +39,7 @@ void LayoutWorker::gotoUrl(QString url)
         network = new QNetworkAccessManager();
         connect(network, &QNetworkAccessManager::finished, this, &LayoutWorker::networkFinished);
     }
-    std::cout << "Getting url" << std::endl;
-    network->get(QNetworkRequest(QUrl(url)));
+    network->get(makeRequest(QUrl(url)));
 }
 
 void LayoutWorker::networkFinished(QNetworkReply *reply)
@@ -38,13 +50,17 @@ void LayoutWorker::networkFinished(QNetworkReply *reply)
         return;
     }
 
-    html = reply->readAll();
-    std::cout << "success" << std::endl;
+    QUrl redirectTarget = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+    if(!redirectTarget.isEmpty()) {
+        network->get(makeRequest(redirectTarget));
+        return;
+    }
 
-    draw();
+    html = reply->readAll();
+    redraw();
 }
 
-void LayoutWorker::draw()
+void LayoutWorker::redraw()
 {
     QMutexLocker lock(&resultLock);
 
@@ -63,5 +79,5 @@ void LayoutWorker::draw()
     painter.drawText(rect, Qt::AlignLeft, html, &rect);
     painter.drawText(rect, Qt::AlignLeft, html, &rect);
 
-    emit layoutComplete();
+    emit pageRendered();
 }

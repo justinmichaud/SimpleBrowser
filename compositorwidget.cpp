@@ -8,7 +8,7 @@ CompositorWidget::CompositorWidget(QWidget *parent) : QWidget(parent)
     layout_worker = new LayoutWorker();
     layout_worker->moveToThread(&worker_thread);
     connect(&worker_thread, &QThread::finished, layout_worker, &QObject::deleteLater);
-    connect(layout_worker, &LayoutWorker::layoutComplete, this, static_cast<void (CompositorWidget::*)()>(&CompositorWidget::update));
+    connect(layout_worker, &LayoutWorker::pageRendered, this, static_cast<void (CompositorWidget::*)()>(&CompositorWidget::update));
     connect(this, &CompositorWidget::urlChanged, layout_worker, &LayoutWorker::gotoUrl);
     worker_thread.start();
 }
@@ -25,7 +25,7 @@ void CompositorWidget::paintEvent(QPaintEvent *)
     layout_worker->copyImage(painter);
 }
 
-void CompositorWidget::resizeEvent(QResizeEvent *e)
+void CompositorWidget::resizeEvent(QResizeEvent *)
 {
     layout_worker->resize(size());
 }

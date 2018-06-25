@@ -21,22 +21,24 @@ private:
 
     QString html;
 
-    void draw();
-
 public:
     LayoutWorker();
     virtual ~LayoutWorker();
 
+    // These can be called from either thread
     void resize(QSize size);
     void copyImage(QPainter &dst);
 
 public slots:
+    // Must be called on owning thread to avoid blocking
     void gotoUrl(QString url);
+    void redraw();
 
+private slots:
     void networkFinished(QNetworkReply *reply);
 
 signals:
-    void layoutComplete();
+    void pageRendered();
 };
 
 #endif // LAYOUTTHREAD_H
