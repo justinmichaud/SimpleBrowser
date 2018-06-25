@@ -26,11 +26,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    compositorwidget.cpp
+    compositorwidget.cpp \
+    layoutworker.cpp
 
 HEADERS += \
         mainwindow.h \
-    compositorwidget.h
+    compositorwidget.h \
+    layoutworker.h
 
 FORMS += \
         mainwindow.ui

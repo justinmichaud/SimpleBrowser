@@ -15,5 +15,5 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
-    ui->canvas->render(ui->urlBar->text());
+    emit ui->canvas->urlChanged(ui->urlBar->text());
 }

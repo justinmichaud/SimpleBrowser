@@ -1,6 +1,9 @@
 #ifndef COMPOSITORWIDGET_H
 #define COMPOSITORWIDGET_H
 
+#include "layoutworker.h"
+
+#include <QThread>
 #include <QWidget>
 
 class CompositorWidget : public QWidget
@@ -9,16 +12,19 @@ class CompositorWidget : public QWidget
 
     QString text = "Hello World!";
 
+    LayoutWorker *layout_worker;
+    QThread worker_thread;
+
 public:
     explicit CompositorWidget(QWidget *parent = nullptr);
-    void render(QString url);
+    virtual ~CompositorWidget();
 
 signals:
-
-public slots:
+    void urlChanged(QString url);
 
 protected:
     void paintEvent(QPaintEvent *e) override;
+    void resizeEvent(QResizeEvent *e) override;
 };
 
 #endif // COMPOSITORWIDGET_H

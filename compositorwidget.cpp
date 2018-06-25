@@ -5,26 +5,27 @@
 
 CompositorWidget::CompositorWidget(QWidget *parent) : QWidget(parent)
 {
-
+    layout_worker = new LayoutWorker();
+    layout_worker->moveToThread(&worker_thread);
+    connect(&worker_thread, &QThread::finished, layout_worker, &QObject::deleteLater);
+    connect(layout_worker, &LayoutWorker::layoutComplete, this, static_cast<void (CompositorWidget::*)()>(&CompositorWidget::update));
+    connect(this, &CompositorWidget::urlChanged, layout_worker, &LayoutWorker::layout);
+    worker_thread.start();
 }
 
-void CompositorWidget::render(QString url)
+CompositorWidget::~CompositorWidget()
 {
-    text = url;
-    repaint();
+    worker_thread.quit();
+    worker_thread.wait();
 }
 
 void CompositorWidget::paintEvent(QPaintEvent *)
 {
-    QBrush brush(Qt::black);
-    QPen pen(Qt::blue, 1);
-    QRect rect(0,0,0,0);
-
     QPainter painter(this);
+    layout_worker->copyImage(painter);
+}
 
-    painter.setPen(pen);
-    painter.setBrush(brush);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.drawText(rect, Qt::AlignLeft, text, &rect);
-    painter.drawText(rect, Qt::AlignLeft, text, &rect);
+void CompositorWidget::resizeEvent(QResizeEvent *e)
+{
+    layout_worker->resize(size());
 }
