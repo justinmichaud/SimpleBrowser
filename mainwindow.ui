@@ -43,6 +43,9 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="text">
+         <string>http://motherfuckingwebsite.com</string>
+        </property>
        </widget>
       </item>
       <item>

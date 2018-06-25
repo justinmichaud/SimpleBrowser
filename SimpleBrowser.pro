@@ -33,13 +33,17 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     compositorwidget.cpp \
-    layoutworker.cpp
+    layoutworker.cpp \
+    textnode.cpp \
+    blocknode.cpp
 
 HEADERS += \
         mainwindow.h \
     compositorwidget.h \
     layoutworker.h \
-    domnode.h
+    domnode.h \
+    textnode.h \
+    blocknode.h
 
 FORMS += \
         mainwindow.ui

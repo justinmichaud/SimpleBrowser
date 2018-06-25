@@ -1,6 +1,7 @@
 #ifndef LAYOUWORKER_H
 #define LAYOUWORKER_H
 
+#include <memory>
 #include <QImage>
 #include <QMutex>
 #include <QPainter>
@@ -23,7 +24,7 @@ private:
     QSize size;
 
     std::string html;
-    DomNode root;
+    std::unique_ptr<DomNode> root {nullptr};
 
     void parseHtml();
 

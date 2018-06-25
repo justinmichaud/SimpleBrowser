@@ -1,4 +1,6 @@
+#include "blocknode.h"
 #include "layoutworker.h"
+#include "textnode.h"
 #include <iostream>
 #include <cassert>
 
@@ -10,22 +12,26 @@ QNetworkRequest makeRequest(QUrl url) {
     return req;
 }
 
-std::vector<DomNode> buildTree(myhtml_tree_t* tree, myhtml_tree_node_t *node) {
-    std::vector<DomNode> children;
+std::vector<std::unique_ptr<DomNode>> buildTree(myhtml_tree_t* tree, myhtml_tree_node_t *node) {
+    std::vector<std::unique_ptr<DomNode>> children;
     while (node) {
-        DomNode n;
         const char *tag_name = myhtml_tag_name_by_id(tree, myhtml_node_tag_id(node), NULL);
         assert(tag_name);
-        n.tag = std::string{tag_name};
 
         const char* node_text = myhtml_node_text(node, NULL);
+
+        std::unique_ptr<DomNode> n { nullptr };
+
         if (node_text) {
-            n.text = std::string{node_text};
+            assert(strlen(node_text) > 0);
+            n.reset(new TextNode(std::string{tag_name}, std::string{node_text}));
+            assert(!myhtml_node_child(node));
+        } else {
+            n.reset(new BlockNode(std::string{tag_name}, buildTree(tree, myhtml_node_child(node))));
         }
 
-        n.children = buildTree(tree, myhtml_node_child(node));
         node = myhtml_node_next(node);
-        children.push_back(n);
+        children.push_back(std::move(n));
     }
     return children;
 }
@@ -95,10 +101,8 @@ void LayoutWorker::parseHtml()
     myhtml_parse(tree, MyENCODING_UTF_8, html.c_str(), strlen(html.c_str()));
 
     myhtml_tree_node_t *node = myhtml_tree_get_document(tree);
-    root.text = std::string{};
-    root.tag = "html";
-    root.children = buildTree(tree, myhtml_node_child(node));
-    root.printTree();
+    root.reset(new BlockNode("html", buildTree(tree, myhtml_node_child(node))));
+    root->layout(QSize(500, INT_MAX));
 
     // release resources
     myhtml_tree_destroy(tree);
@@ -112,7 +116,7 @@ void LayoutWorker::redraw()
     if (result.size() != size) result = QImage(size, QImage::Format_ARGB32);
     result.fill(0);
 
-    QBrush brush(Qt::black);
+    QBrush brush(Qt::transparent);
     QPen pen(Qt::blue, 1);
 
     QPainter painter(&result);
@@ -121,9 +125,7 @@ void LayoutWorker::redraw()
     painter.setBrush(brush);
     painter.setRenderHint(QPainter::Antialiasing, true);
 
-    QRect rect(0,0,0,0);
-    painter.drawText(rect, Qt::AlignLeft, QString::fromStdString(html), &rect);
-    painter.drawText(rect, Qt::AlignLeft, QString::fromStdString(html), &rect);
+    if (root) root->render(painter);
 
     emit pageRendered();
 }

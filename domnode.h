@@ -1,24 +1,18 @@
 #ifndef DOMNODE_H
 #define DOMNODE_H
 
-#include <iostream>
+#include <QPainter>
 
 class DomNode
 {
 public:
-    DomNode() {}
+    DomNode(std::string tag): tag{tag} {}
 
     std::string tag;
-    std::string text;
-    std::vector<DomNode> children;
+    QRect bounding_box; // Local coordinaes
 
-    void printTree(size_t depth = 0) {
-        for (size_t i=0; i<depth; ++i) std::cout << " ";
-        std::cout << "<" << tag << ">" << text << std::endl;
-        for (auto &n : children) n.printTree(depth+1);
-        for (size_t i=0; i<depth; ++i) std::cout << " ";
-        std::cout << "</" << tag << ">" << std::endl;
-    }
+    virtual void layout(QSize max_size) = 0;
+    virtual void render(QPainter &painter) = 0;
 };
 
 #endif // DOMNODE_H
