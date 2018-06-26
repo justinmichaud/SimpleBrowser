@@ -1,7 +1,6 @@
 #include "blocknode.h"
 #include "layoutworker.h"
 #include "textnode.h"
-#include <iostream>
 #include <cassert>
 
 namespace {
@@ -18,20 +17,22 @@ std::vector<std::unique_ptr<DomNode>> buildTree(myhtml_tree_t* tree, myhtml_tree
         const char *tag_name = myhtml_tag_name_by_id(tree, myhtml_node_tag_id(node), NULL);
         assert(tag_name);
 
-        const char* node_text = myhtml_node_text(node, NULL);
-
         std::unique_ptr<DomNode> n { nullptr };
 
-        if (node_text) {
-            assert(strlen(node_text) > 0);
-            n.reset(new TextNode(std::string{tag_name}, std::string{node_text}));
+        if (myhtml_node_tag_id(node) == MyHTML_TAG__TEXT) {
+            const char* node_text = myhtml_node_text(node, NULL);
+            assert(node_text && strlen(node_text) > 0);
+
+            std::string text_str = QString(node_text).trimmed().toStdString();
+            if (!text_str.empty())
+                children.emplace_back(new TextNode(std::string{tag_name}, text_str));
+
             assert(!myhtml_node_child(node));
         } else {
-            n.reset(new BlockNode(std::string{tag_name}, buildTree(tree, myhtml_node_child(node))));
+            children.emplace_back(new BlockNode(std::string{tag_name}, buildTree(tree, myhtml_node_child(node))));
         }
 
         node = myhtml_node_next(node);
-        children.push_back(std::move(n));
     }
     return children;
 }
@@ -49,12 +50,21 @@ LayoutWorker::~LayoutWorker()
 void LayoutWorker::resize(QSize size)
 {
     this->size = size;
+    QMetaObject::invokeMethod(this, &LayoutWorker::layout);
+    QMetaObject::invokeMethod(this, &LayoutWorker::redraw);
+}
+
+void LayoutWorker::scrollTo(int dy)
+{
+    scroll_pos -= dy;
+    if (scroll_pos < 0) scroll_pos = 0;
+    if (scroll_pos > root->bounding_box.height()) scroll_pos = root->bounding_box.height();
     QMetaObject::invokeMethod(this, &LayoutWorker::redraw);
 }
 
 void LayoutWorker::copyImage(QPainter &dst)
 {
-    if (resultLock.tryLock(10)) {
+    if (resultLock.tryLock(100)) {
         dst.drawImage(QPoint{0,0}, result);
         resultLock.unlock();
     }
@@ -85,11 +95,13 @@ void LayoutWorker::networkFinished(QNetworkReply *reply)
 
     html = reply->readAll().toStdString();
     parseHtml();
+    layout();
     redraw();
 }
 
 void LayoutWorker::parseHtml()
 {
+    QMutexLocker lock(&resultLock);
     myhtml_t* myhtml = myhtml_create();
     myhtml_init(myhtml, MyHTML_OPTIONS_DEFAULT, 1, 0);
 
@@ -102,24 +114,32 @@ void LayoutWorker::parseHtml()
 
     myhtml_tree_node_t *node = myhtml_tree_get_document(tree);
     root.reset(new BlockNode("html", buildTree(tree, myhtml_node_child(node))));
-    root->layout(QSize(500, INT_MAX));
+
+    root->printTree();
 
     // release resources
     myhtml_tree_destroy(tree);
     myhtml_destroy(myhtml);
 }
 
+void LayoutWorker::layout()
+{
+    QMutexLocker lock(&resultLock);
+    if (result.size() != size) result = QImage(size, QImage::Format_ARGB32);
+    if (root) root->layout(QSize(result.width(), INT_MAX));
+}
+
 void LayoutWorker::redraw()
 {
     QMutexLocker lock(&resultLock);
 
-    if (result.size() != size) result = QImage(size, QImage::Format_ARGB32);
     result.fill(0);
 
     QBrush brush(Qt::transparent);
     QPen pen(Qt::blue, 1);
 
     QPainter painter(&result);
+    painter.translate(0, -scroll_pos);
 
     painter.setPen(pen);
     painter.setBrush(brush);

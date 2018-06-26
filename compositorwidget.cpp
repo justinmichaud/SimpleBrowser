@@ -29,3 +29,8 @@ void CompositorWidget::resizeEvent(QResizeEvent *)
 {
     layout_worker->resize(size());
 }
+
+void CompositorWidget::wheelEvent(QWheelEvent *e)
+{
+    layout_worker->scrollTo(e->delta()/2);
+}

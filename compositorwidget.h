@@ -4,6 +4,7 @@
 #include "layoutworker.h"
 
 #include <QThread>
+#include <QWheelEvent>
 #include <QWidget>
 
 class CompositorWidget : public QWidget
@@ -25,6 +26,7 @@ signals:
 protected:
     void paintEvent(QPaintEvent *e) override;
     void resizeEvent(QResizeEvent *e) override;
+    void wheelEvent(QWheelEvent *e) override;
 };
 
 #endif // COMPOSITORWIDGET_H

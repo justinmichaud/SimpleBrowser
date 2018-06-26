@@ -26,6 +26,8 @@ private:
     std::string html;
     std::unique_ptr<DomNode> root {nullptr};
 
+    int scroll_pos = 0;
+
     void parseHtml();
 
 public:
@@ -34,11 +36,13 @@ public:
 
     // These can be called from either thread
     void resize(QSize size);
+    void scrollTo(int pos);
     void copyImage(QPainter &dst);
 
 public slots:
     // Must be called on owning thread to avoid blocking
     void gotoUrl(QString url);
+    void layout();
     void redraw();
 
 private slots:
