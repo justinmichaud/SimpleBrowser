@@ -10,9 +10,11 @@
 class BlockNode : public DomNode
 {
 public:
-    BlockNode(std::string tag, std::vector<std::unique_ptr<DomNode>> children): DomNode(tag), children{std::move(children)} {}
+    BlockNode(std::string tag, std::vector<std::unique_ptr<DomNode>> children, bool childrenAreInline): DomNode(tag),
+        children{std::move(children)}, childrenAreInline{childrenAreInline} {}
 
     std::vector<std::unique_ptr<DomNode>> children;
+    bool childrenAreInline;
 
     void layout(QSize max_size);
     void render(QPainter &painter);

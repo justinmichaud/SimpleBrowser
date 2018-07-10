@@ -9,8 +9,10 @@ class TextNode : public DomNode
 {
 public:
     std::string text;
+    int size;
+    bool link;
 
-    TextNode(std::string tag, std::string text): DomNode(tag), text{text} {}
+    TextNode(std::string tag, std::string text, int size = 4, bool link = false): DomNode(tag), text{text}, size{size}, link{link} {}
 
     void layout(QSize max_size);
     void render(QPainter &painter);

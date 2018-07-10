@@ -8,6 +8,7 @@ class DomNode
 {
 public:
     DomNode(std::string tag): tag{tag} {}
+    virtual ~DomNode() {}
 
     std::string tag;
     QRect bounding_box; // Local coordinaes

@@ -19,7 +19,8 @@ void BlockNode::render(QPainter &painter)
         painter.translate(c->bounding_box.x(), c->bounding_box.y());
         c->render(painter);
         painter.restore();
-        painter.translate(0, c->bounding_box.height());
+        if (childrenAreInline) painter.translate(c->bounding_box.width(), c->bounding_box.height());
+        else painter.translate(0, c->bounding_box.height());
     }
     painter.restore();
 }

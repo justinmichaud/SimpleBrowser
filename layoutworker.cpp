@@ -11,13 +11,15 @@ QNetworkRequest makeRequest(QUrl url) {
     return req;
 }
 
-std::vector<std::unique_ptr<DomNode>> buildTree(myhtml_tree_t* tree, myhtml_tree_node_t *node) {
+std::vector<std::unique_ptr<DomNode>> buildTree(myhtml_tree_t* tree, myhtml_tree_node_t *node, int size = 8, bool link = false, bool forceInline = false) {
     std::vector<std::unique_ptr<DomNode>> children;
     while (node) {
+        if (myhtml_node_tag_id(node) == MyHTML_TAG_SCRIPT ||myhtml_node_tag_id(node) == MyHTML_TAG_HEAD ||myhtml_node_tag_id(node) == MyHTML_TAG_COMMENT) {
+            node = myhtml_node_next(node);
+            continue;
+        }
         const char *tag_name = myhtml_tag_name_by_id(tree, myhtml_node_tag_id(node), NULL);
         assert(tag_name);
-
-        std::unique_ptr<DomNode> n { nullptr };
 
         if (myhtml_node_tag_id(node) == MyHTML_TAG__TEXT) {
             const char* node_text = myhtml_node_text(node, NULL);
@@ -25,11 +27,26 @@ std::vector<std::unique_ptr<DomNode>> buildTree(myhtml_tree_t* tree, myhtml_tree
 
             std::string text_str = QString(node_text).trimmed().toStdString();
             if (!text_str.empty())
-                children.emplace_back(new TextNode(std::string{tag_name}, text_str));
+                children.emplace_back(new TextNode(std::string{tag_name}, text_str, size, link));
 
             assert(!myhtml_node_child(node));
+        } else if (myhtml_node_tag_id(node) == MyHTML_TAG_P || myhtml_node_tag_id(node) == MyHTML_TAG_A || myhtml_node_tag_id(node) == MyHTML_TAG_H1 ||
+            myhtml_node_tag_id(node) == MyHTML_TAG_H2 || myhtml_node_tag_id(node) == MyHTML_TAG_H3 || myhtml_node_tag_id(node) == MyHTML_TAG_H4) {
+
+            int size = 0;
+            bool link = false;
+            if (myhtml_node_tag_id(node) == MyHTML_TAG_P) size = 12;
+            else if (myhtml_node_tag_id(node) == MyHTML_TAG_A) { size = 12; link = true; }
+            else if (myhtml_node_tag_id(node) == MyHTML_TAG_H1) size = 48;
+            else if (myhtml_node_tag_id(node) == MyHTML_TAG_H2) size = 36;
+            else if (myhtml_node_tag_id(node) == MyHTML_TAG_H3) size = 28;
+            else if (myhtml_node_tag_id(node) == MyHTML_TAG_H4) size = 24;
+            else assert(false);
+
+            children.emplace_back(new BlockNode(std::string{tag_name}, buildTree(tree, myhtml_node_child(node), size, link, true), true));
+
         } else {
-            children.emplace_back(new BlockNode(std::string{tag_name}, buildTree(tree, myhtml_node_child(node))));
+            children.emplace_back(new BlockNode(std::string{tag_name}, buildTree(tree, myhtml_node_child(node), size, link, forceInline), forceInline));
         }
 
         node = myhtml_node_next(node);
@@ -113,7 +130,7 @@ void LayoutWorker::parseHtml()
     myhtml_parse(tree, MyENCODING_UTF_8, html.c_str(), strlen(html.c_str()));
 
     myhtml_tree_node_t *node = myhtml_tree_get_document(tree);
-    root.reset(new BlockNode("html", buildTree(tree, myhtml_node_child(node))));
+    root.reset(new BlockNode("html", buildTree(tree, myhtml_node_child(node)), false));
 
     root->printTree();
 
@@ -136,7 +153,7 @@ void LayoutWorker::redraw()
     result.fill(0);
 
     QBrush brush(Qt::transparent);
-    QPen pen(Qt::blue, 1);
+    QPen pen(Qt::green, 1);
 
     QPainter painter(&result);
     painter.translate(0, -scroll_pos);
